@@ -1,5 +1,6 @@
 const path = require('path');
 const { existsSync } = require('fs');
+const findWorkspaceRoot = require('find-yarn-workspace-root');
 const {
   glob,
   download,
@@ -33,6 +34,18 @@ exports.build = async ({
 
   if (path.basename(entrypoint) === 'package.json') {
     await runNpmInstall(entrypointFsDirname, ['--prefer-offline']);
+    if (config.includeWorkspace) {
+      const workspaceRoot = findWorkspaceRoot(entrypointFsDirname);
+
+      if (workspaceRoot) {
+        await runNpmInstall(entrypointFsDirname, [
+          '--cwd',
+          workspaceRoot,
+          '--modules-folder',
+          path.join(entrypointFsDirname, 'node_modules'),
+        ]);
+      }
+    }
     if (await runPackageJsonScript(entrypointFsDirname, 'now-build')) {
       validateDistDir(distPath);
       return glob('**', distPath, mountpoint);
