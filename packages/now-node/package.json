@@ -1,16 +1,17 @@
 {
-  "name": "@now/node",
+  "name": "now-node-workspaces",
   "version": "0.5.4-canary.5",
   "license": "MIT",
   "main": "./dist/index",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zeit/now-builders.git",
+    "url": "https://github.com/nathancahill/now-builders.git",
     "directory": "packages/now-node"
   },
   "dependencies": {
     "@now/node-bridge": "^1.0.2-canary.2",
     "@zeit/ncc": "0.17.3",
+    "find-yarn-workspace-root": "^1.2.1",
     "fs-extra": "7.0.1"
   },
   "scripts": {

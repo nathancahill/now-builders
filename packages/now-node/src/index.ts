@@ -1,5 +1,6 @@
 import { join, dirname, sep } from 'path';
 import { readFile } from 'fs-extra';
+import findWorkspaceRoot from 'find-yarn-workspace-root';
 import {
   glob,
   download,
@@ -22,13 +23,15 @@ interface DownloadOptions {
   entrypoint: string;
   workPath: string;
   npmArguments?: string[];
+  includeWorkspace?: boolean;
 }
 
 async function downloadInstallAndBundle({
   files,
   entrypoint,
   workPath,
-  npmArguments = []
+  npmArguments = [],
+  includeWorkspace = false,
 }: DownloadOptions) {
   console.log('downloading user files...');
   const downloadedFiles = await download(files, workPath);
@@ -36,6 +39,14 @@ async function downloadInstallAndBundle({
   console.log("installing dependencies for user's code...");
   const entrypointFsDirname = join(workPath, dirname(entrypoint));
   await runNpmInstall(entrypointFsDirname, npmArguments);
+
+  if (includeWorkspace) {
+    const workspaceRoot = findWorkspaceRoot(entrypointFsDirname);
+
+    if (workspaceRoot) {
+      await runNpmInstall(entrypointFsDirname, npmArguments.concat(['--cwd', workspaceRoot, '--modules-folder', join(entrypointFsDirname, 'node_modules')]));
+    }
+  }
 
   const entrypointPath = downloadedFiles[entrypoint].fsPath;
   return { entrypointPath, entrypointFsDirname };
@@ -87,7 +98,8 @@ async function compile(entrypointPath: string, entrypoint: string, config: Compi
 }
 
 export const config = {
-  maxLambdaSize: '5mb'
+  maxLambdaSize: '5mb',
+  includeWorkspace: false,
 };
 
 export async function build({ files, entrypoint, workPath, config }: BuildOptions) {
@@ -95,7 +107,7 @@ export async function build({ files, entrypoint, workPath, config }: BuildOption
     entrypointPath,
     entrypointFsDirname
   } = await downloadInstallAndBundle(
-    { files, entrypoint, workPath, npmArguments: ['--prefer-offline'] }
+    { files, entrypoint, workPath, npmArguments: ['--prefer-offline'], includeWorkspace: Boolean(config.includeWorkspace) }
   );
 
   console.log('running user script...');
